@@ -11,7 +11,8 @@ createApp({
     rows() { return this.raw.map((r, i) => ({
       flat: r['Квартира'] || `lot-${i}`, building: r['Корпус'] || '—', rooms: Number(r['Комнат']) || 0,
       area: Number(r['Площадь, м²']) || 0, view: r['Вид'] || 'Вид не указан', price: Number(r['Стоимость, руб.']) || 0,
-      deal: clean(r['Сумма сделки, руб.']), discount: Number(r['Скидка, руб.']) || 0, manager: r['Менеджер'] || null,
+      deal: clean(r['Сумма сделки, руб.']), sold: Number(r['Сумма сделки, руб.']) > 0,
+      discount: Number(r['Скидка, руб.']) || 0, manager: r['Менеджер'] || null,
       dealDate: Number(r['Дата сделки']) || null, days: Number(r['Дней в работе']) || 0, floor: Number(r['Этаж']) || 0
     })); },
     buildings() { return [...new Set(this.rows.map(r => r.building))].sort(); },

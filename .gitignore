@@ -1,0 +1,9 @@
+# Local OpenCode configuration may contain credentials
+opencode.json
+
+# Excel temporary lock files
+~$*.xlsx
+
+# OS files
+.DS_Store
+Thumbs.db
