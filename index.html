@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Продажи ЖК · матрица спроса</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div id="app" v-cloak>
+    <header class="topbar">
+      <div class="brand"><span class="brand-mark">◒</span><span>URBAN / SALES INTELLIGENCE</span></div>
+      <div class="period">МАРТ — СЕНТЯБРЬ 2026 <span class="live-dot"></span></div>
+    </header>
+    <main class="shell">
+      <section class="hero">
+        <div>
+          <p class="eyebrow">ЖК «МЕЖДУ РЕКОЙ И САДОВЫМ» · 01</p>
+          <h1>Продажи квартир в ЖК</h1>
+          <p class="lede">Матрица спроса показывает вероятность сделки для каждого сочетания корпуса, вида и комнат.</p>
+        </div>
+        <div class="hero-note"><span class="note-line"></span><span>В фокусе — факт сделки<br><b>без имитации продаж</b></span></div>
+      </section>
+
+      <section class="dashboard-layout">
+        <div class="top-controls">
+          <section class="toolbar">
+            <div class="control"><label>Корпус</label><select v-model="building"><option value="all">Все корпуса</option><option v-for="x in buildings" :value="x">{{ x }}</option></select></div>
+            <div class="control"><label>Вид из окна</label><select v-model="view"><option value="all">Все виды</option><option v-for="x in views" :value="x">{{ x }}</option></select></div>
+            <div class="control"><label>Комнаты</label><div class="room-tabs"><button v-for="x in rooms" :class="{active: room === x}" @click="room=x">{{ x === 'all' ? 'Все' : x + 'к' }}</button></div></div>
+            <div class="control"><label>Наличие скидки</label><select v-model="discountFilter"><option value="all">Все квартиры</option><option value="yes">Есть скидка</option><option value="no">Без скидки</option></select></div>
+            <button class="reset" @click="reset">Сбросить ↺</button>
+          </section>
+          <section class="kpis">
+            <div class="kpi"><span class="kpi-label">ПРЕДЛОЖЕНИЕ</span><strong>{{ filtered.length }}</strong><small>квартир в выборке</small></div>
+            <div class="kpi accent"><span class="kpi-label">СДЕЛКИ</span><strong>{{ soldCount }}</strong><small>подтверждено данными</small></div>
+            <div class="kpi"><span class="kpi-label">КОНВЕРСИЯ</span><strong>{{ conversion }}<i>%</i></strong><small>продано от предложения</small></div>
+            <div class="kpi"><span class="kpi-label">МЕДИАНА СДЕЛКИ</span><strong>{{ medianDays }}<i> дн.</i></strong><small>от обращения до сделки</small></div>
+            <div class="kpi money-kpi"><span class="kpi-label">СУММА СДЕЛОК</span><strong>{{ formatMillions(totalRevenue) }}<i> млн ₽</i></strong><small>{{ soldCount }} закрытых сделок</small></div>
+            <div class="kpi discount-kpi"><span class="kpi-label">СУММА СКИДОК</span><strong>{{ formatMillions(totalDiscount) }}<i> млн ₽</i></strong><small>{{ discountShare }}% от суммы сделок</small></div>
+          </section>
+        </div>
+        <div class="main-grid">
+          <div class="chart-card">
+          <div class="card-head"><div><p class="eyebrow">КОРПУСА · СКОРОСТЬ ПРОДАЖИ</p><h2>Продажи квартир по корпусам</h2></div><div class="legend speed-legend"><span><i class="swatch fast"></i>Быстро · ≤ 7 дней</span><span><i class="swatch normal"></i>Нормально · 8–14</span><span><i class="swatch slow"></i>Долго · 15+</span><span><i class="swatch no-deal"></i>Нет сделки</span></div></div>
+           <p class="chart-intro">Каждый кружок — отдельная квартира · строки показывают комнатность · нажмите на квартиру для деталей.</p>
+          <div id="demand-chart" class="chart"></div>
+          <div class="chart-foot chart-foot-note"><span class="foot-key">● квартира</span><span>Положение внутри ряда не кодирует рейтинг — только помогает увидеть объём предложения</span></div>
+        </div>
+         <aside class="right-rail">
+          <section class="mini-card weekly-card">
+            <div class="mini-head"><div><p class="eyebrow">ДИНАМИКА СПРОСА</p><h3>Продажи по неделям</h3></div><span class="mini-mark">↗</span></div>
+            <p class="mini-intro">Столбцы — количество сделок, линия — сумма продаж.</p>
+            <div id="weekly-chart" class="mini-chart"></div>
+          </section>
+          <section class="mini-card manager-card">
+            <div class="mini-head"><div><p class="eyebrow">РЕЗУЛЬТАТЫ КОМАНДЫ</p><h3>Продажи по менеджерам</h3></div><span class="mini-mark">↗</span></div>
+            <p class="mini-intro">Рейтинг по количеству закрытых сделок.</p>
+            <div id="manager-chart" class="mini-chart"></div>
+          </section>
+          <section class="detail-card" :class="{empty: !selected}">
+          <template v-if="selected">
+            <div class="detail-top"><span class="tag">{{ selected.building }}</span><span class="rank">{{ selected.conversion }}% conversion</span></div>
+            <h3>{{ selected.rooms }}-комнатные<br><em>{{ shortView(selected.view) }}</em></h3>
+            <div class="detail-stat"><strong>{{ selected.sold }}</strong><span>из {{ selected.total }} квартир<br>закрыто сделками</span></div>
+            <div class="meter"><span :style="{width: selected.conversion + '%'}"></span></div>
+            <dl><div><dt>Медиана цены</dt><dd>{{ money(selected.price) }} ₽</dd></div><div><dt>Средний срок продажи</dt><dd>{{ selected.days ? selected.days + ' дн.' : '—' }}</dd></div><div><dt>Площадь</dt><dd>{{ selected.area }} м²</dd></div></dl>
+            <div class="verdict" :class="selected.conversion > 50 ? 'good' : 'warn'"><span>{{ selected.conversion > 50 ? '↗' : '!' }}</span><p>{{ selected.conversion > 50 ? 'Сильная связка характеристик' : 'Зона для работы с ценой и оффером' }}<small>{{ selected.conversion > 50 ? 'Выше средней конверсии по ЖК' : 'Низкая доля завершённых сделок' }}</small></p></div>
+          </template>
+          <template v-else><div class="empty-state"><span>✦</span><h3>Выберите сегмент</h3><p>Нажмите на любую ячейку матрицы, чтобы увидеть детальный профиль.</p></div></template>
+          </section>
+        </aside>
+        </div>
+      </section>
+
+      <section class="table-card"><div class="card-head"><div><p class="eyebrow">РЕЕСТР ЛОТОВ</p><h2>Все квартиры в выборке</h2></div><span class="table-count">{{ filtered.length }} лотов</span></div><div class="table-wrap"><table><thead><tr><th>Квартира</th><th>Корпус</th><th>Комнат</th><th>Площадь</th><th>Вид из окна</th><th>Цена, ₽</th><th>Статус</th></tr></thead><tbody><tr v-for="row in sortedRows" :key="row.flat"><td class="mono">{{ row.flat }}</td><td><b class="building-dot" :style="{background: buildingColor(row.building)}"></b>{{ row.building }}</td><td>{{ row.rooms }}</td><td>{{ row.area }} м²</td><td>{{ shortView(row.view) }}</td><td>{{ money(row.price) }}</td><td><span class="status" :class="row.sold ? 'closed' : 'open'">{{ row.sold ? 'Сделка' : 'В продаже' }}</span></td></tr></tbody></table></div></section>
+    </main>
+    <footer><span>Источник: Продажи ЖК, март–сентябрь 2026.xlsx</span><span>Данные по сделке учитываются только при наличии суммы сделки</span></footer>
+  </div>
+  <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+  <script src="data.js"></script><script src="app.js"></script>
+</body>
+</html>
